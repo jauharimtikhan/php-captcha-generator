@@ -1,0 +1,18 @@
+{
+    "name": "jauhar/captcha-generator",
+    "description": "Captcha Generator PHP",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Jauhar\\CaptchaGenerator\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "jauharimtikhan",
+            "email": "jauhar.imtikhan@gmail.com"
+        }
+    ],
+    "require": {}
+}
