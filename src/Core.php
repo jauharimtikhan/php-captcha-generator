@@ -10,7 +10,7 @@ class Core
     private string $captchaText = '';
     private string $fontPath;
 
-    public function __construct(int $width = 180, int $height = 65, int $length = 6, string $fontPath = __DIR__ . '/fonts/static/Roboto-Bold.ttf')
+    public function __construct(int $width = 180, int $height = 65, int $length = 6, string $fontPath = __DIR__ . '/fonts/Roboto-Bold.ttf')
     {
         $this->width = $width;
         $this->height = $height;
@@ -18,7 +18,13 @@ class Core
         $this->fontPath = $fontPath;
     }
 
-    public function generate(): void
+    /**
+     * Generate CAPTCHA
+     *
+     * @param string $format Tipe output: 'image' (langsung render ke browser) atau 'base64' (return string base64)
+     * @return string|null
+     */
+    public function generate(string $format = 'image'): ?string
     {
         $image = imagecreatetruecolor($this->width, $this->height);
 
@@ -34,17 +40,16 @@ class Core
 
         // 2. Tambahkan Background Noise: Lengkungan (Arcs) acak
         for ($i = 0; $i < 4; $i++) {
-            // Warna arc agak terang biar gak terlalu mengganggu huruf utama
             $arcColor = imagecolorallocate($image, rand(120, 200), rand(120, 200), rand(120, 200));
-            imagesetthickness($image, rand(1, 3)); // Ketebalan bervariasi
+            imagesetthickness($image, rand(1, 3));
             imagearc(
                 $image,
                 rand(10, $this->width),
-                rand(10, $this->height), // Titik tengah X, Y
+                rand(10, $this->height),
                 rand(50, 150),
-                rand(30, 100),                    // Lebar, Tinggi elips
+                rand(30, 100),
                 rand(0, 360),
-                rand(0, 360),                      // Derajat mulai, selesai
+                rand(0, 360),
                 $arcColor
             );
         }
@@ -59,20 +64,18 @@ class Core
         // Reset ketebalan garis ke default
         imagesetthickness($image, 1);
 
-        // 4. Cetak Teks (Tiap huruf warna-warni, ukuran beda, kemiringan beda)
+        // 4. Cetak Teks
         $boxWidth = $this->width / $this->length;
 
         for ($i = 0; $i < $this->length; $i++) {
             $char = $this->captchaText[$i];
 
-            $fontSize = rand(20, 28); // Ukuran font acak
-            $angle = rand(-30, 30);   // Kemiringan acak -30 sampai 30 derajat
+            $fontSize = rand(20, 28);
+            $angle = rand(-30, 30);
 
-            // Posisi X dan Y
             $x = ($i * $boxWidth) + rand(2, 8);
             $y = ($this->height / 2) + ($fontSize / 2) + rand(-8, 8);
 
-            // Generate warna gelap untuk tiap huruf (Range 0-90 = Gelap dan kontras)
             $charColor = imagecolorallocate($image, rand(0, 90), rand(0, 90), rand(0, 90));
 
             imagettftext($image, $fontSize, $angle, (int)$x, (int)$y, $charColor, $this->fontPath, $char);
@@ -90,12 +93,24 @@ class Core
         }
         $_SESSION['captcha_code'] = $this->captchaText;
 
-        // 7. Output ke browser
-        header('Content-Type: image/jpeg');
-        // Kualitas JPEG 70-80% menghasilkan efek noise alami yang menyulitkan OCR
-        imagejpeg($image, null, 75);
+        // 7. Proses Output (Image atau Base64)
+        if ($format === 'base64') {
+            // Gunakan output buffering untuk menangkap data biner gambar
+            ob_start();
+            imagejpeg($image, null, 75);
+            $imageData = ob_get_clean();
+            imagedestroy($image);
 
+            // Format sebagai data URI base64 agar bisa langsung dipasang di tag <img> html
+            return 'data:image/jpeg;base64,' . base64_encode($imageData);
+        }
+
+        // Default output: langsung render ke browser sebagai file JPG
+        header('Content-Type: image/jpeg');
+        imagejpeg($image, null, 75);
         imagedestroy($image);
+
+        return null;
     }
 
     private function generateRandomString(): string
